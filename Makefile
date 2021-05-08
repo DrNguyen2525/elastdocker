@@ -1,5 +1,7 @@
 .DEFAULT_GOAL:=help
 
+NET_NAME    := elastic
+NET_OPTIONS := -d bridge --attachable
 COMPOSE_ALL_FILES := -f docker-compose.yml -f docker-compose.monitor.yml -f docker-compose.metricbeat.yml -f docker-compose.tools.yml -f docker-compose.nodes.yml
 COMPOSE_MONITORING := -f docker-compose.yml -f docker-compose.monitor.yml
 COMPOSE_BEATS := -f docker-compose.yml -f docker-compose.metricbeat.yml
@@ -27,13 +29,14 @@ keystore:		## Setup Elasticsearch Keystore, by initializing passwords, and add c
 certs:		    ## Generate Elasticsearch SSL Certs.
 	docker-compose -f docker-compose.setup.yml run --rm certs
 
-setup:		    ## Setup recommended system configs, generate Elasticsearch SSL Certs and Keystore.
+setup:		    ## Setup recommended system configs, generate Elasticsearch SSL Certs and Keystore, create `elastic` docker network.
 		    ## Needed for metricbeat
 	@sudo setfacl -m u:1000:rw /var/run/docker.sock && echo "=> ACLs on /var/run/docker.sock OK"
 		    ## Needed for elasticsearch
 	@sudo sysctl -w vm.max_map_count=262144 && echo "=> vm.max_map_count=262144 OK"
 	@make certs
 	@make keystore
+	@make network
 
 all:		    ## Start Elk and all its component (ELK, Monitoring, and Tools).
 	docker-compose ${COMPOSE_ALL_FILES} up -d --build ${ELK_MAIN_SERVICES}
@@ -76,6 +79,17 @@ logs:			## Tail all logs with -n 1000.
 
 images:			## Show all Images of ELK and all its extra components.
 	@docker-compose $(COMPOSE_ALL_FILES) images ${ELK_ALL_SERVICES}
+	
+network:		## Create docker network for the system if not exist
+	@if docker network ls -q --filter name='^$(NET_NAME)$$' | xargs -r false; then \
+		NET_NAME="$(NET_NAME)"; \
+		if test -n "$${NET_NAME%container:*}"; then \
+			docker network create $(NET_OPTIONS) $(NET_NAME); \
+			echo "'$(NET_NAME)' network created"; \
+		fi; \
+	else \
+		echo "'$(NET_NAME)' network already exists. Skipping..."; \
+	fi
 
 prune:			## Remove ELK Containers and Delete Volume Data
 	@make swarm-rm || echo ""
