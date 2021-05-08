@@ -1,4 +1,4 @@
-version: '3.5'
+version: '3.7'
 
 services:
   curator:
@@ -35,7 +35,7 @@ services:
     image: sherifabdlnaby/rubban:latest
     restart: unless-stopped
     environment:
-      RUBBAN_KIBANA_HOST: "https://${KIBANA_HOST}:${KIBANA_PORT}"
+      RUBBAN_KIBANA_HOST: 'https://${KIBANA_HOST}:${KIBANA_PORT}'
       RUBBAN_KIBANA_USER: ${ELASTIC_USERNAME}
       RUBBAN_KIBANA_PASSWORD: ${ELASTIC_PASSWORD}
       RUBBAN_REFRESHINDEXPATTERN_ENABLED: 'true'

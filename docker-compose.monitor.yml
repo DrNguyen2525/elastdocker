@@ -1,24 +1,27 @@
-version: '3.5'
+version: '3.7'
 
 services:
-
   # Prometheus Exporters ------------------------------
   elasticsearch-exporter:
     image: justwatch/elasticsearch_exporter:1.1.0
     restart: always
-    command: ["--es.uri", "http://${ELASTIC_USERNAME}:${ELASTIC_PASSWORD}@${ELASTICSEARCH_HOST}:${ELASTICSEARCH_PORT}",
-              "--es.all",
-              "--es.snapshots",
-              "--es.indices"]
+    command:
+      [
+        '--es.uri',
+        'http://${ELASTIC_USERNAME}:${ELASTIC_PASSWORD}@${ELASTICSEARCH_HOST}:${ELASTICSEARCH_PORT}',
+        '--es.all',
+        '--es.snapshots',
+        '--es.indices'
+      ]
     ports:
-      - "9114:9114"
+      - '9114:9114'
 
   logstash-exporter:
     image: alxrem/prometheus-logstash-exporter
     restart: always
     ports:
-      - "9304:9304"
-    command: ["-logstash.host", "${LOGSTASH_HOST}"]
+      - '9304:9304'
+    command: ['-logstash.host', '${LOGSTASH_HOST}']
 
   # Cluster Logs Shipper ------------------------------
   filebeat-cluster-logs:

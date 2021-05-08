@@ -1,12 +1,12 @@
-version: '3.5'
+version: '3.7'
 
 # To Join any other app setup using another network, change name and set external = true
 networks:
   default:
     name: elastic
-    external: false
+    external: true
 
-# will contain all elasticsearch data.
+# Will contain all elasticsearch data.
 volumes:
   elasticsearch-data:
 
@@ -27,6 +27,7 @@ secrets:
 services:
   elasticsearch:
     image: elasticsearch:elastdocker-${ELK_VERSION}
+    container_name: elasticsearch
     build:
       context: elasticsearch/
       args:
@@ -40,7 +41,7 @@ services:
       ELASTIC_INIT_MASTER_NODE: ${ELASTIC_INIT_MASTER_NODE}
       ELASTIC_DISCOVERY_SEEDS: ${ELASTIC_DISCOVERY_SEEDS}
       ES_JAVA_OPTS: -Xmx${ELASTICSEARCH_HEAP} -Xms${ELASTICSEARCH_HEAP} -Des.enforce.bootstrap.checks=true
-      bootstrap.memory_lock: "true"
+      bootstrap.memory_lock: 'true'
     volumes:
       - elasticsearch-data:/usr/share/elasticsearch/data
       - ./elasticsearch/config/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml
@@ -55,8 +56,8 @@ services:
       - source: elasticsearch.key
         target: /usr/share/elasticsearch/config/certs/elasticsearch.key
     ports:
-      - "9200:9200"
-      - "9300:9300"
+      - '9200:9200'
+      - '9300:9300'
     ulimits:
       memlock:
         soft: -1
@@ -67,6 +68,7 @@ services:
 
   logstash:
     image: logstash:elastdocker-${ELK_VERSION}
+    container_name: logstash
     build:
       context: logstash/
       args:
@@ -80,13 +82,14 @@ services:
       ELASTIC_USERNAME: ${ELASTIC_USERNAME}
       ELASTIC_PASSWORD: ${ELASTIC_PASSWORD}
       ELASTICSEARCH_HOST_PORT: ${ELASTICSEARCH_HOST}:${ELASTICSEARCH_PORT}
-      LS_JAVA_OPTS: "-Xmx${LOGSTASH_HEAP} -Xms${LOGSTASH_HEAP}"
+      LS_JAVA_OPTS: '-Xmx${LOGSTASH_HEAP} -Xms${LOGSTASH_HEAP}'
     ports:
-      - "5044:5044"
-      - "9600:9600"
+      - '5044:5044'
+      - '9600:9600'
 
   kibana:
     image: kibana:elastdocker-${ELK_VERSION}
+    container_name: kibana
     build:
       context: kibana/
       args:
@@ -106,4 +109,4 @@ services:
       - source: kibana.key
         target: /certs/kibana.key
     ports:
-      - "5601:5601"
+      - '5601:5601'
