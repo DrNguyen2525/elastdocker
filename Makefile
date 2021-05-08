@@ -1,14 +1,16 @@
 .DEFAULT_GOAL:=help
 
-COMPOSE_ALL_FILES := -f docker-compose.yml -f docker-compose.monitor.yml -f docker-compose.tools.yml -f docker-compose.nodes.yml
+COMPOSE_ALL_FILES := -f docker-compose.yml -f docker-compose.monitor.yml -f docker-compose.metricbeat.yml -f docker-compose.tools.yml -f docker-compose.nodes.yml
 COMPOSE_MONITORING := -f docker-compose.yml -f docker-compose.monitor.yml
+COMPOSE_BEATS := -f docker-compose.yml -f docker-compose.metricbeat.yml
 COMPOSE_TOOLS := -f docker-compose.yml -f docker-compose.tools.yml
 COMPOSE_NODES := -f docker-compose.yml -f docker-compose.nodes.yml
 ELK_SERVICES   := elasticsearch logstash kibana
 ELK_MONITORING := elasticsearch-exporter logstash-exporter filebeat-cluster-logs
+ELK_BEATS := metricbeat
 ELK_TOOLS  := curator elastalert rubban
 ELK_NODES := elasticsearch-1 elasticsearch-2
-ELK_MAIN_SERVICES := ${ELK_SERVICES} ${ELK_MONITORING} ${ELK_TOOLS}
+ELK_MAIN_SERVICES := ${ELK_SERVICES} ${ELK_MONITORING} ${ELK_BEATS} ${ELK_TOOLS}
 ELK_ALL_SERVICES := ${ELK_MAIN_SERVICES} ${ELK_NODES}
 # --------------------------
 
@@ -25,7 +27,11 @@ keystore:		## Setup Elasticsearch Keystore, by initializing passwords, and add c
 certs:		    ## Generate Elasticsearch SSL Certs.
 	docker-compose -f docker-compose.setup.yml run --rm certs
 
-setup:		    ## Generate Elasticsearch SSL Certs and Keystore.
+setup:		    ## Setup recommended system configs, generate Elasticsearch SSL Certs and Keystore.
+		    ## Needed for metricbeat
+	@sudo setfacl -m u:1000:rw /var/run/docker.sock && echo "=> ACLs on /var/run/docker.sock OK"
+		    ## Needed for elasticsearch
+	@sudo sysctl -w vm.max_map_count=262144 && echo "=> vm.max_map_count=262144 OK"
 	@make certs
 	@make keystore
 
@@ -40,6 +46,9 @@ up:
 
 monitoring:		## Start ELK Monitoring.
 	@docker-compose ${COMPOSE_MONITORING} up -d --build ${ELK_MONITORING}
+
+beats:		    ## Start ELK Monitoring with Beats
+	@docker-compose ${COMPOSE_BEATS} up -d --build ${ELK_BEATS}
 
 tools:		    ## Start ELK Tools (ElastAlert, Curator).
 	@docker-compose ${COMPOSE_TOOLS} up -d --build ${ELK_TOOLS}

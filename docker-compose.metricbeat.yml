@@ -1,0 +1,32 @@
+version: '3.7'
+
+services:
+  metricbeat:
+    image: docker.elastic.co/beats/metricbeat:${ELK_VERSION}
+    container_name: 'metricbeat'
+    user: root
+    volumes:
+      - ./tools/metricbeat/config/metricbeat.yml:/usr/share/metricbeat/metricbeat.yml:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /sys/fs/cgroup:/hostfs/sys/fs/cgroup:ro
+      - /proc:/hostfs/proc:ro
+      - /sys/fs/cgroup:/hostfs/sys/fs/cgroup:ro
+      - /:/hostfs:ro
+      # - ./tools/metricbeat/config/modules.d/:/usr/share/metricbeat/modules.d/
+    environment:
+      ELASTIC_USERNAME: ${ELASTIC_USERNAME}
+      ELASTIC_PASSWORD: ${ELASTIC_PASSWORD}
+      ELASTICSEARCH_HOST: ${ELASTICSEARCH_HOST}
+      ELASTICSEARCH_PORT: ${ELASTICSEARCH_PORT}
+      KIBANA_HOST: ${KIBANA_HOST}
+      KIBANA_PORT: ${KIBANA_PORT}
+    command: metricbeat -e -system.hostfs=/hostfs -strict.perms=false
+    restart: on-failure
+    depends_on:
+      - elasticsearch
+      - kibana
+
+networks:
+  default:
+    name: elastic
+    external: true
