@@ -6,13 +6,13 @@ services:
     container_name: 'metricbeat'
     user: root
     volumes:
-      - ./tools/metricbeat/config/metricbeat.yml:/usr/share/metricbeat/metricbeat.yml:ro
+      - ./beats/metricbeat/config/metricbeat.yml:/usr/share/metricbeat/metricbeat.yml:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - /sys/fs/cgroup:/hostfs/sys/fs/cgroup:ro
       - /proc:/hostfs/proc:ro
       - /sys/fs/cgroup:/hostfs/sys/fs/cgroup:ro
       - /:/hostfs:ro
-      # - ./tools/metricbeat/config/modules.d/:/usr/share/metricbeat/modules.d/
+      # - ./beats/metricbeat/config/modules.d/:/usr/share/metricbeat/modules.d/
     environment:
       ELASTIC_USERNAME: ${ELASTIC_USERNAME}
       ELASTIC_PASSWORD: ${ELASTIC_PASSWORD}

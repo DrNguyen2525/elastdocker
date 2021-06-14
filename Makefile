@@ -2,9 +2,9 @@
 
 NET_NAME    := elastic
 NET_OPTIONS := -d bridge --attachable
-COMPOSE_ALL_FILES := -f docker-compose.yml -f docker-compose.monitor.yml -f docker-compose.metricbeat.yml -f docker-compose.tools.yml -f docker-compose.nodes.yml
+COMPOSE_ALL_FILES := -f docker-compose.yml -f docker-compose.monitor.yml -f docker-compose.beats.yml -f docker-compose.tools.yml -f docker-compose.nodes.yml
 COMPOSE_MONITORING := -f docker-compose.yml -f docker-compose.monitor.yml
-COMPOSE_BEATS := -f docker-compose.yml -f docker-compose.metricbeat.yml
+COMPOSE_BEATS := -f docker-compose.yml -f docker-compose.beats.yml
 COMPOSE_TOOLS := -f docker-compose.yml -f docker-compose.tools.yml
 COMPOSE_NODES := -f docker-compose.yml -f docker-compose.nodes.yml
 ELK_SERVICES   := elasticsearch logstash kibana
