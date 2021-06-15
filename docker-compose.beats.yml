@@ -26,4 +26,4 @@ services:
 networks:
   default:
     name: elastic
-    external: true
+    external: false
