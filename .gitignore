@@ -3,3 +3,5 @@
 /secrets
 tools/elastalert/rules/*
 .env
+.env.staging
+
