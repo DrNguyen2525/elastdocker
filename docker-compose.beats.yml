@@ -22,6 +22,9 @@ services:
       KIBANA_PORT: ${KIBANA_PORT}
     command: metricbeat -e -system.hostfs=/hostfs -strict.perms=false
     restart: on-failure
+    depends_on:
+      - elasticsearch
+      - kibana
 
 networks:
   default:
