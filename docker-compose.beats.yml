@@ -1,6 +1,25 @@
 version: '3.7'
 
 services:
+  filebeat:
+    image: docker.elastic.co/beats/filebeat:${ELK_VERSION}
+    container_name: 'filebeat'
+    user: root
+    network_mode: host
+    environment:
+      ELASTIC_USERNAME: ${ELASTIC_USERNAME}
+      ELASTIC_PASSWORD: ${ELASTIC_PASSWORD}
+      ELASTICSEARCH_HOST_PORT: ${ELASTICSEARCH_HOST}:${ELASTICSEARCH_PORT}
+      LOGSTASH_HOST_PORT: ${LOGSTASH_HOST}:${LOGSTASH_PORT}
+      KIBANA_HOST_PORT: ${KIBANA_HOST}:${KIBANA_PORT}
+    volumes:
+      - ./beats/filebeat/config/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
+      - ./beats/filebeat/config/ilm-config.json:/usr/share/filebeat/ilm-config.json
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    command: -e --strict.perms=false
+    restart: on-failure
+
   metricbeat:
     image: docker.elastic.co/beats/metricbeat:${ELK_VERSION}
     container_name: 'metricbeat'

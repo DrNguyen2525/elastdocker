@@ -1,0 +1,260 @@
+#================================== Description ========================================
+# Filebeat Config to send Elasticsearch/Logstash/Kibana in a docker host to Elasticsea-
+# sh cluster.
+
+name: filebeat
+
+filebeat.config:
+  modules:
+    path: ${path.config}/modules.d/*.yml
+    reload.enabled: true
+
+#==========================  Modules configuration =============================
+filebeat.modules:
+  #-------------------------------- System Module --------------------------------
+  - module: system
+    # Syslog
+    syslog:
+      enabled: true
+
+      # Set custom paths for the log files. If left empty,
+      # Filebeat will choose the paths depending on your OS.
+      #var.paths:
+
+      # Input configuration (advanced). Any input configuration option
+      # can be added under this section.
+      #input:
+
+    # Authorization logs
+    auth:
+      enabled: true
+
+  #-------------------------------- Nginx Module --------------------------------
+  - module: nginx
+    # Access logs
+    access:
+      enabled: true
+
+      # Set custom paths for the log files. If left empty,
+      # Filebeat will choose the paths depending on your OS.
+      #var.paths:
+
+      # Input configuration (advanced). Any input configuration option
+      # can be added under this section.
+      #input:
+
+    # Error logs
+    error:
+      enabled: true
+
+      # Set custom paths for the log files. If left empty,
+      # Filebeat will choose the paths depending on your OS.
+      #var.paths:
+
+      # Input configuration (advanced). Any input configuration option
+      # can be added under this section.
+      #input:
+
+    # Ingress-nginx controller logs. This is disabled by default. It could be used in Kubernetes environments to parse ingress-nginx logs
+    #ingress_controller:
+    #  enabled: false
+    #
+    #  # Set custom paths for the log files. If left empty,
+    #  # Filebeat will choose the paths depending on your OS.
+    #  #var.paths:
+
+# ================================== Template ==================================
+
+# A template is used to set the mapping in Elasticsearch
+# By default template loading is enabled and the template is loaded.
+# These settings can be adjusted to load your own template or overwrite existing ones.
+
+# Set to false to disable template loading.
+#setup.template.enabled: true
+
+# Select the kind of index template. From Elasticsearch 7.8, it is possible to
+# use component templates. Available options: legacy, component, index.
+# By default metricbeat uses the legacy index templates.
+setup.template.type: index
+
+# Template name. By default the template name is "metricbeat-%{[agent.version]}"
+# The template name and pattern has to be set in case the Elasticsearch index pattern is modified.
+#setup.template.name: "metricbeat-%{[agent.version]}"
+
+# Template pattern. By default the template pattern is "-%{[agent.version]}-*" to apply to the default index settings.
+# The first part is the version of the beat and then -* is used to match all daily indices.
+# The template name and pattern has to be set in case the Elasticsearch index pattern is modified.
+#setup.template.pattern: "metricbeat-%{[agent.version]}-*"
+
+# Path to fields.yml file to generate the template
+#setup.template.fields: "${path.config}/fields.yml"
+
+# A list of fields to be added to the template and Kibana index pattern. Also
+# specify setup.template.overwrite: true to overwrite the existing template.
+#setup.template.append_fields:
+#- name: field_name
+#  type: field_type
+
+# Enable JSON template loading. If this is enabled, the fields.yml is ignored.
+#setup.template.json.enabled: false
+
+# Path to the JSON template file
+#setup.template.json.path: "${path.config}/template.json"
+
+# Name under which the template is stored in Elasticsearch
+#setup.template.json.name: ""
+
+# Overwrite existing template
+# Do not enable this option for more than one instance of metricbeat as it might
+# overload your Elasticsearch with too many update requests.
+#setup.template.overwrite: false
+
+# Elasticsearch template settings
+setup.template.settings:
+
+  # A dictionary of settings to place into the settings.index dictionary
+  # of the Elasticsearch template. For more details, please check
+  # https://www.elastic.co/guide/en/elasticsearch/reference/current/mapping.html
+  #index:
+  #number_of_shards: 1
+  #codec: best_compression
+
+  # A dictionary of settings for the _source field. For more details, please check
+  # https://www.elastic.co/guide/en/elasticsearch/reference/current/mapping-source-field.html
+  #_source:
+  #enabled: false
+
+#================================ Autodiscover =======================================
+# Autodiscover all containers with elasticsearch images, and add an separate input for
+# each container and log type.
+filebeat.autodiscover:
+  providers:
+    - type: docker
+      templates:
+        - condition:
+            contains:
+              docker.container.image: elasticsearch
+          config:
+            - module: elasticsearch
+              server:
+                input:
+                  type: container
+                  paths: '/var/lib/docker/containers/${data.docker.container.id}/*.log'
+              gc:
+                input:
+                  type: container
+                  paths: '/var/lib/docker/containers/${data.docker.container.id}/*.log'
+              audit:
+                input:
+                  type: container
+                  paths: '/var/lib/docker/containers/${data.docker.container.id}/*.log'
+              slowlog:
+                input:
+                  type: container
+                  paths: '/var/lib/docker/containers/${data.docker.container.id}/*.log'
+              deprecation:
+                input:
+                  type: container
+                  paths: '/var/lib/docker/containers/${data.docker.container.id}/*.log'
+    - type: docker
+      templates:
+        - condition:
+            contains:
+              docker.container.image: kibana
+          config:
+            - module: kibana
+              log:
+                input:
+                  type: container
+                  paths: '/var/lib/docker/containers/${data.docker.container.id}/*.log'
+    - type: docker
+      templates:
+        - condition:
+            contains:
+              docker.container.image: logstash
+          config:
+            - module: logstash
+              log:
+                input:
+                  type: container
+                  paths: '/var/lib/docker/containers/${data.docker.container.id}/*.log'
+              slowlog:
+                input:
+                  type: container
+                  paths: '/var/lib/docker/containers/${data.docker.container.id}/*.log'
+
+processors:
+  - add_docker_metadata:
+      host: 'unix:///var/run/docker.sock'
+      match_fields: ['system.process.cgroup.id']
+      match_pids: ['process.pid', 'process.ppid']
+      match_source: true
+      match_source_index: 4
+      match_short_id: false
+      cleanup_timeout: 60
+      labels.dedot: false
+  - add_host_metadata:
+      when.not.contains.tags: forwarded
+      # To connect to Docker over TLS you must specify a client and CA certificate.
+      #ssl:
+      #  certificate_authority: "/etc/pki/root/ca.pem"
+      #  certificate:           "/etc/pki/client/cert.pem"
+      #  key:                   "/etc/pki/client/cert.key"
+
+filebeat.inputs:
+  - type: log
+    paths:
+      - '/var/lib/docker/containers/*/*.log'
+    json.message_key: log
+    json.keys_under_root: true
+
+output.logstash:
+  hosts: ['${LOGSTASH_HOST_PORT}']
+
+  # Optional SSL. By default is off.
+  # List of root certificates for HTTPS server verifications
+  #ssl.certificate_authorities: ["/etc/pki/root/ca.pem"]
+
+  # Certificate for SSL client authentication
+  #ssl.certificate: "/etc/pki/client/cert.pem"
+
+  # Client Certificate Key
+  #ssl.key: "/etc/pki/client/cert.key"
+
+#=================================== Kibana ==========================================
+# Enable setting up Kibana
+# Starting with Beats version 6.0.0, the dashboards are loaded via the Kibana API.
+# This requires a Kibana endpoint configuration.
+setup:
+  kibana:
+    host: '${KIBANA_HOST_PORT}'
+    username: '${ELASTIC_USERNAME}'
+    password: '${ELASTIC_PASSWORD}'
+
+#==================================== Monitoring =====================================
+# Enable Monitoring Beats
+# Filebeat can export internal metrics to a central Elasticsearch monitoring
+# cluster.  This requires xpack monitoring to be enabled in Elasticsearch
+
+# Use deprecated option to avoid current UX bug in 7.3.0 where filebeat creates a
+# standalone monitoring cluster in the monitoring UI.
+# see: https://github.com/elastic/beats/pull/13182
+xpack.monitoring.enabled: false
+#monitoring:
+#  enabled: true
+#  elasticsearch:
+#    hosts: '${ELASTICSEARCH_HOST_PORT}'
+#    username: '${ELASTIC_USERNAME}'
+#    password: '${ELASTIC_PASSWORD}'
+
+#================================ HTTP Endpoint ======================================
+# Enabled so we can monitor filebeat using filebeat exporter if needed.
+# Each beat can expose internal metrics through a HTTP endpoint. For security
+# reasons the endpoint is disabled by default. This feature is currently experimental.
+# Stats can be access through http://localhost:5066/stats . For pretty JSON output
+# append ?pretty to the URL.
+
+# Defines if the HTTP endpoint is enabled.
+# http.enabled: true
+# http.host: 0.0.0.0
+# http.port: 5066
